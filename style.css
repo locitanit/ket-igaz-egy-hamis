@@ -298,8 +298,14 @@ button.statement:disabled{ cursor:default; }
   width:24px; height:24px; border-radius:50%; background:var(--navy); color:#fff;
   font-size:.75rem; display:grid; place-items:center; flex-shrink:0;
 }
-.score-list li:nth-child(1){ background:#fff8e0; border-color:var(--yellow); }
-.score-list li:nth-child(1) .rank{ background:var(--yellow); color:#6b5100; }
+.score-list li.is-first{ background:#fff8e0; border-color:var(--yellow); }
+.score-list li.is-first .rank{ background:var(--yellow); color:#6b5100; }
+.score-list li .tie{
+  margin-left:8px; font-size:.7rem; font-weight:800; letter-spacing:.4px;
+  color:var(--navy-soft); background:#eef2f7;
+  border-radius:999px; padding:2px 8px; white-space:nowrap;
+}
+.score-list li.is-first .tie{ color:#6b5100; background:rgba(255,211,77,.45); }
 .score-list li .pts{ margin-left:auto; background:var(--mint-soft); border-radius:999px; padding:3px 10px; font-size:.85rem; }
 
 /* ---------- QR gomb + ablak ---------- */

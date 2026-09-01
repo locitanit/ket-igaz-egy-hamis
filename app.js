@@ -630,10 +630,19 @@ function renderEnd() {
     .map(([id, p]) => ({ id, name: p.name, pts: scores[id] || 0 }))
     .sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name, "hu"));
 
-  $("final-list").innerHTML = rows.map((r, i) => `
-    <li class="${r.id === MY_ID ? "is-me" : ""}">
-      <span class="rank">${i + 1}</span>
-      <span>${esc(r.name)}${r.id === MY_ID ? " (te)" : ""}</span>
+  // Holtverseny: azonos pontszám = azonos helyezés, utána ugrik a sorszám.
+  // (1., 1., 3. – "standard competition ranking")
+  let rank = 0;
+  rows.forEach((r, i) => {
+    if (i === 0 || r.pts !== rows[i - 1].pts) rank = i + 1;
+    r.rank = rank;
+    r.tied = rows.some((o, j) => j !== i && o.pts === r.pts);
+  });
+
+  $("final-list").innerHTML = rows.map(r => `
+    <li class="${r.rank === 1 ? "is-first" : ""} ${r.id === MY_ID ? "is-me" : ""}">
+      <span class="rank">${r.rank}</span>
+      <span>${esc(r.name)}${r.id === MY_ID ? " (te)" : ""}${r.tied ? '<span class="tie">holtverseny</span>' : ""}</span>
       <span class="pts">${r.pts} pont</span>
     </li>`).join("");
 
