@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b2a5b" />
+  <title>Két igaz, egy hamis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- dekoratív háttér -->
+  <div class="bg-decor" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+    <span class="dot d1"></span>
+    <span class="dot d2"></span>
+    <span class="dot d3"></span>
+  </div>
+
+  <!-- ===================== FEJLÉC ===================== -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <!-- REJTETT ADMIN: erre a 3 pontra kattintva jön elő a törlő panel -->
+        <span class="brand-dots" id="secret-trigger" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="brand-text">Két igaz, egy hamis</span>
+      </div>
+      <div class="topbar-right">
+        <span class="pill" id="top-room" hidden>Szoba: <b id="top-room-code">–</b></span>
+        <span class="pill pill-ghost" id="top-role" hidden>Játékos</span>
+        <button class="icon-btn" id="btn-leave" hidden title="Kilépés a szobából" aria-label="Kilépés a szobából">⎋</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ===================== REJTETT ADMIN PANEL ===================== -->
+    <section class="card admin-panel" id="admin-panel" hidden>
+      <p class="admin-title">⚠️ Adatbázis törlése</p>
+      <p class="muted">Ez VÉGLEGESEN kitörli az összes szobát és minden beküldött állítást.</p>
+      <input class="input" id="admin-code" type="password" autocomplete="off"
+             spellcheck="false" placeholder="Titkos kód" />
+      <div class="admin-row">
+        <button class="btn btn-danger" id="admin-go">Törlés</button>
+        <button class="btn btn-ghost" id="admin-cancel">Mégse</button>
+      </div>
+      <p class="error" id="admin-error" hidden></p>
+    </section>
+
+    <!-- ===================== 0. KEZDŐKÉPERNYŐ ===================== -->
+    <section class="screen" id="screen-landing">
+      <div class="card card-hero">
+        <h1 class="hero-title">Két igaz, egy hamis</h1>
+        <p class="hero-sub">Írj magadról két igaz állítást és egy hazugságot. Vajon átver ez az osztályt?</p>
+
+        <div class="hero-grid">
+          <div class="hero-box">
+            <h2>Tanár / Host</h2>
+            <p class="muted">Készíts új szobát, és te irányítod a játékot.</p>
+            <button class="btn btn-primary btn-block" id="btn-create">Játék létrehozása</button>
+          </div>
+
+          <div class="hero-box">
+            <h2>Játékos</h2>
+            <p class="muted">Írd be a tanártól kapott szobakódot.</p>
+            <input class="input input-code" id="join-code" type="text" inputmode="latin"
+                   autocomplete="off" spellcheck="false" maxlength="8" placeholder="ABCD12" />
+            <button class="btn btn-dark btn-block" id="btn-join">Csatlakozás</button>
+          </div>
+        </div>
+
+        <p class="error" id="landing-error" hidden></p>
+      </div>
+    </section>
+
+    <!-- ===================== 1. BEKÜLDÉS ===================== -->
+    <section class="screen" id="screen-submit" hidden>
+      <div class="card">
+        <div class="room-strip">
+          <span>Szobakód</span>
+          <button class="code-chip" id="submit-room-code" title="Másolás">–</button>
+        </div>
+
+        <h2 class="card-title">Írd le a történeteidet!</h2>
+        <p class="muted">Két állítás legyen igaz, egy pedig hamis. A sorrendet a program megkeveri.</p>
+
+        <form id="form-submit" autocomplete="off">
+          <label class="field">
+            <span class="label">Név</span>
+            <input class="input" id="inp-name" maxlength="24" required placeholder="Pl. Béla" />
+          </label>
+          <label class="field">
+            <span class="label">1. igazság</span>
+            <input class="input" id="inp-t1" maxlength="120" required placeholder="Valami igaz rólad…" />
+          </label>
+          <label class="field">
+            <span class="label">2. igazság</span>
+            <input class="input" id="inp-t2" maxlength="120" required placeholder="Még valami igaz…" />
+          </label>
+          <label class="field field-lie">
+            <span class="label">Hazugság</span>
+            <input class="input" id="inp-lie" maxlength="120" required placeholder="Ez legyen a kamu 🤫" />
+          </label>
+          <button class="btn btn-primary btn-block" type="submit" id="btn-submit-story">Beküldés</button>
+          <p class="error" id="submit-error" hidden></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===================== 2. VÁRÓTEREM ===================== -->
+    <section class="screen" id="screen-lobby" hidden>
+      <div class="card">
+        <div class="room-strip">
+          <span>Szobakód</span>
+          <button class="code-chip" id="lobby-room-code" title="Másolás">–</button>
+        </div>
+
+        <h2 class="card-title">Váróterem</h2>
+        <p class="muted" id="lobby-count">Csatlakozott játékosok: 0</p>
+
+        <ul class="player-list" id="lobby-list"></ul>
+
+        <div class="host-zone" id="lobby-host" hidden>
+          <p class="host-tag">Hosztvezérlés</p>
+          <button class="btn btn-primary btn-block" id="btn-start-game">Játék indítása</button>
+        </div>
+        <p class="muted center" id="lobby-hint">Várunk a hosztra, hogy elindítsa a játékot…</p>
+      </div>
+    </section>
+
+    <!-- ===================== 3–4. JÁTÉK ===================== -->
+    <section class="screen" id="screen-game" hidden>
+      <div class="card">
+        <div class="stage-strip">
+          <span class="stage-chip" id="stage-chip">Szavazás</span>
+          <span class="muted small" id="stage-progress">1 / 1</span>
+        </div>
+        <div id="game-body"></div>
+      </div>
+      <div class="card host-card" id="host-card" hidden>
+        <p class="host-tag">Hosztvezérlés</p>
+        <div id="host-body"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 5. JÁTÉK VÉGE ===================== -->
+    <section class="screen" id="screen-end" hidden>
+      <div class="card center-card">
+        <div class="big-emoji">🎉</div>
+        <h2 class="card-title">Vége a játéknak!</h2>
+        <p class="muted">Íme a végeredmény – pont jár minden jó tippért.</p>
+        <ul class="score-list" id="final-list"></ul>
+        <div class="host-zone" id="end-host" hidden>
+          <p class="host-tag">Hosztvezérlés</p>
+          <button class="btn btn-dark btn-block" id="btn-new-game">Új játék indítása</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- toast -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
