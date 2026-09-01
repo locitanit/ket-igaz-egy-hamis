@@ -17,9 +17,8 @@
     <span class="blob b1"></span>
     <span class="blob b2"></span>
     <span class="blob b3"></span>
-    <span class="dot d1"></span>
-    <span class="dot d2"></span>
-    <span class="dot d3"></span>
+    <span class="blob b4"></span>
+    <span class="blob b5"></span>
   </div>
 
   <!-- ===================== FEJLÉC ===================== -->
@@ -57,7 +56,7 @@
     <section class="screen" id="screen-landing">
       <div class="card card-hero">
         <h1 class="hero-title">Két igaz, egy hamis</h1>
-        <p class="hero-sub">Írj magadról két igaz állítást és egy hazugságot. Vajon átver ez az osztályt?</p>
+        <p class="hero-sub">Írj magadról két igaz állítást és egy hazugságot. Vajon átvered az osztályt?</p>
 
         <div class="hero-grid">
           <div class="hero-box">
@@ -74,6 +73,10 @@
             <button class="btn btn-dark btn-block" id="btn-join">Csatlakozás</button>
           </div>
         </div>
+
+        <button class="btn btn-ghost btn-block btn-qr" id="btn-qr">
+          <span aria-hidden="true">📱</span> QR-kód mutatása
+        </button>
 
         <p class="error" id="landing-error" hidden></p>
       </div>
@@ -164,6 +167,17 @@
     </section>
 
   </main>
+
+  <!-- ===================== QR ABLAK ===================== -->
+  <div class="modal" id="qr-modal" hidden>
+    <div class="modal-box">
+      <button class="modal-close" id="qr-close" aria-label="Bezárás">✕</button>
+      <h2 class="card-title">Csatlakozás QR-kóddal</h2>
+      <p class="muted">Olvassátok be telefonnal – ez a játék kezdőoldalára visz.</p>
+      <div class="qr-holder" id="qr-holder">Betöltés…</div>
+      <p class="qr-url" id="qr-url"></p>
+    </div>
+  </div>
 
   <!-- toast -->
   <div class="toast" id="toast" hidden></div>

@@ -656,6 +656,47 @@ $("btn-leave").addEventListener("click", () => {
     leaveRoom();
 });
 
+/* ---------- QR-kód a kezdőoldalhoz ---------- */
+
+/** A játék kezdőoldalának címe (kérdőjel és # nélkül). */
+function gameUrl() {
+  return location.origin + location.pathname.replace(/index\.html$/, "");
+}
+
+let qrLoaded = false;
+async function openQr() {
+  const modal  = $("qr-modal");
+  const holder = $("qr-holder");
+  const url    = gameUrl();
+
+  $("qr-url").textContent = url;
+  modal.hidden = false;
+
+  if (qrLoaded) return;                      // egyszer elég kirajzolni
+  holder.textContent = "Betöltés…";
+  try {
+    const { default: qrcode } =
+      await import("https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm");
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    holder.innerHTML = qr.createSvgTag({ cellSize: 8, margin: 1, scalable: true });
+    qrLoaded = true;
+  } catch (e) {
+    console.error(e);
+    holder.textContent = "A QR-kódot nem sikerült elkészíteni. A link alatta így is használható.";
+  }
+}
+
+$("btn-qr").addEventListener("click", openQr);
+$("qr-close").addEventListener("click", () => { $("qr-modal").hidden = true; });
+$("qr-modal").addEventListener("click", (e) => {
+  if (e.target.id === "qr-modal") $("qr-modal").hidden = true;   // háttérre kattintva zár
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") $("qr-modal").hidden = true;
+});
+
 /* ---------- rejtett admin: teljes adatbázis törlése ---------- */
 
 function toggleAdminPanel(show) {

@@ -35,10 +35,8 @@ Aki egyszer már felfedődött szerzőként, később nem választható.
 {
   "rules": {
     "rooms": {
-      "$code": {
-        ".read": true,
-        ".write": true
-      }
+      ".read": true,
+      ".write": true
     }
   }
 }
