@@ -141,7 +141,6 @@ async function createRoom() {
       hostId: MY_ID,
       activePlayerId: null,
       orderIndex: 0,
-      authorRevealed: false,
       lieRevealed: false,
       createdAt: Date.now()
     });
@@ -279,37 +278,19 @@ function submittedPlayers() {
 async function startGame() {
   const list = submittedPlayers().map(([id]) => id);
   if (list.length < 2) return toast("Legalább 2 beküldött játékos kell!");
-  const order = shuffle([...list]);
+
+  // A hoszt kezd, utána a többiek véletlen sorrendben.
+  const rest  = shuffle(list.filter(id => id !== room.hostId));
+  const order = list.includes(room.hostId) ? [room.hostId, ...rest] : rest;
+
   await update(roomRef, {
     order,
     orderIndex: 0,
     activePlayerId: order[0],
-    gameState: "guess_author",
-    authorRevealed: false,
+    gameState: "guess_lie",
     lieRevealed: false,
     votes: null
   });
-}
-
-async function closeAuthorVoting() {
-  await update(roomRef, { gameState: "reveal_author" });
-}
-
-/** Szerző felfedése + pontozás + az aktív játékos "elhasználtnak" jelölése. */
-async function revealAuthor() {
-  const votes = (room.votes && room.votes.author) || {};
-  const scores = Object.assign({}, room.scores || {});
-  Object.entries(votes).forEach(([voter, target]) => {
-    if (target === room.activePlayerId) scores[voter] = (scores[voter] || 0) + 1;
-  });
-  const revealed = Object.assign({}, room.revealed || {});
-  revealed[room.activePlayerId] = true;
-
-  await update(roomRef, { authorRevealed: true, scores, revealed });
-}
-
-async function goToLieVoting() {
-  await update(roomRef, { gameState: "guess_lie" });
 }
 
 async function closeLieVoting() {
@@ -337,8 +318,7 @@ async function nextPlayer() {
   await update(roomRef, {
     orderIndex: next,
     activePlayerId: order[next],
-    gameState: "guess_author",
-    authorRevealed: false,
+    gameState: "guess_lie",
     lieRevealed: false,
     votes: null
   });
@@ -355,8 +335,8 @@ async function newGame() {
     gameState: "submitting",
     players: cleaned,
     order: null, orderIndex: 0, activePlayerId: null,
-    authorRevealed: false, lieRevealed: false,
-    votes: null, revealed: null, scores: null
+    lieRevealed: false,
+    votes: null, scores: null
   });
   toast("Új kör indul – mindenki írjon új állításokat!");
 }
@@ -364,13 +344,6 @@ async function newGame() {
 /* =====================================================================
    SZAVAZÁS (játékos oldal)
    ===================================================================== */
-
-async function voteAuthor(targetId) {
-  if (room.gameState !== "guess_author") return;
-  if (MY_ID === room.activePlayerId) return;
-  await set(ref(db, `rooms/${roomCode}/votes/author/${MY_ID}`), targetId);
-  toast("Szavazatod elmentve ✔");
-}
 
 async function voteLie(index) {
   if (room.gameState !== "guess_lie") return;
@@ -467,70 +440,22 @@ function renderGame() {
 
   $("stage-progress").textContent = `${(room.orderIndex || 0) + 1} / ${order.length}`;
   $("stage-chip").textContent = {
-    guess_author: "1. kör – Ki írta?",
-    reveal_author: "Eredmény – Ki írta?",
-    guess_lie:    "2. kör – Melyik a hazugság?",
-    reveal_lie:   "Eredmény – A hazugság"
+    guess_lie:  "Melyik a hazugság?",
+    reveal_lie: "Eredmény"
   }[gs] || "Játék";
 
-  const stmts       = active.statements || [];
-  const iAmActive   = MY_ID === room.activePlayerId;
-  const iSubmitted  = !!(players[MY_ID] && players[MY_ID].submitted);
-  const authorVotes = (room.votes && room.votes.author) || {};
-  const lieVotes    = (room.votes && room.votes.lie) || {};
+  const stmts      = active.statements || [];
+  const iAmActive  = MY_ID === room.activePlayerId;
+  const iSubmitted = !!(players[MY_ID] && players[MY_ID].submitted);
+  const lieVotes   = (room.votes && room.votes.lie) || {};
 
   let html = "";
 
-  /* ---- 3A: ki írta? ---- */
-  if (gs === "guess_author") {
-    const myVote = authorVotes[MY_ID] || null;
-    html += `<h3 class="q-title">Vajon ki írta?</h3>`;
-    html += `<div class="statements">${statementCards(stmts)}</div>`;
-
-    if (iAmActive) {
-      html += `<p class="notice">Ez a te történeted 🤫 Várd meg a többieket!</p>`;
-    } else if (!iSubmitted) {
-      html += `<p class="notice wait">Nézőként követed a játékot.</p>`;
-    } else {
-      const candidates = candidateList();
-      html += `<div class="name-grid">` + candidates.map(([id, p]) => `
-        <button type="button" class="name-btn ${myVote === id ? "picked" : ""}" data-vote-author="${id}">
-          ${esc(p.name)}
-        </button>`).join("") + `</div>`;
-      html += myVote
-        ? `<p class="muted center" style="margin-top:12px">Szavaztál: <b>${esc((players[myVote] || {}).name || "?")}</b> – át tudod írni, amíg a hoszt le nem zárja.</p>`
-        : `<p class="muted center" style="margin-top:12px">Válassz egy nevet!</p>`;
-    }
-  }
-
-  /* ---- 3B: szerző felfedése ---- */
-  if (gs === "reveal_author") {
-    html += `<h3 class="q-title">Szavazás eredménye</h3>`;
-    const counts = {};
-    candidateList().forEach(([id]) => counts[id] = 0);
-    Object.values(authorVotes).forEach(t => { if (t in counts) counts[t]++; });
-    const rows = Object.entries(counts)
-      .map(([id, c]) => ({
-        label: (players[id] || {}).name || "?",
-        count: c,
-        win: room.authorRevealed && id === room.activePlayerId
-      }))
-      .sort((a, b) => b.count - a.count);
-    html += barChart(rows);
-
-    if (room.authorRevealed) {
-      html += `<div class="author-banner"><span class="lbl">A történet szerzője</span>
-               <span class="who">${esc(active.name)}</span></div>`;
-      html += `<div class="statements">${statementCards(stmts)}</div>`;
-    } else {
-      html += `<p class="notice wait">Várunk a hosztra, hogy felfedje a szerzőt…</p>`;
-    }
-  }
-
-  /* ---- 4A: melyik a hazugság? ---- */
+  /* ---- Szavazás: melyik a hazugság? ---- */
   if (gs === "guess_lie") {
     const myVote = (MY_ID in lieVotes) ? Number(lieVotes[MY_ID]) : null;
-    html += `<div class="author-banner"><span class="lbl">${esc(active.name)} történetei</span></div>`;
+    html += `<div class="author-banner"><span class="lbl">Soron következik</span>
+             <span class="who">${esc(active.name)}</span></div>`;
     html += `<h3 class="q-title">Melyik a hazugság?</h3>`;
 
     if (iAmActive) {
@@ -547,10 +472,9 @@ function renderGame() {
     }
   }
 
-  /* ---- 4B: hazugság felfedése ---- */
+  /* ---- Hazugság felfedése ---- */
   if (gs === "reveal_lie") {
-    html += `<div class="author-banner"><span class="lbl">A történetek szerzője</span>
-             <span class="who">${esc(active.name)}</span></div>`;
+    html += `<div class="author-banner"><span class="lbl">${esc(active.name)} állításai</span></div>`;
     html += `<h3 class="q-title">Szavazás eredménye</h3>`;
 
     const counts = stmts.map((_, i) => Object.values(lieVotes).filter(v => Number(v) === i).length);
@@ -572,12 +496,6 @@ function renderGame() {
   renderHostControls();
 }
 
-/** Választható nevek: a már felfedett szerzők kiesnek. */
-function candidateList() {
-  const revealed = room.revealed || {};
-  return submittedPlayers().filter(([id]) => !revealed[id] || id === room.activePlayerId);
-}
-
 /* ---------- hoszt vezérlőpanel ---------- */
 function renderHostControls() {
   $("host-card").hidden = !isHost;
@@ -586,27 +504,17 @@ function renderHostControls() {
   const gs      = room.gameState;
   const players = room.players || {};
   const voters  = submittedPlayers().filter(([id]) => id !== room.activePlayerId).length;
-  let html = "";
+  let html = `<p class="host-note">Soron: <b>${esc((players[room.activePlayerId] || {}).name || "?")}</b></p>`;
 
-  if (gs === "guess_author" || gs === "guess_lie") {
-    const votes = (room.votes && room.votes[gs === "guess_author" ? "author" : "lie"]) || {};
+  if (gs === "guess_lie") {
+    const votes = (room.votes && room.votes.lie) || {};
     const n = Object.keys(votes).length;
     const pct = voters ? Math.round(n / voters * 100) : 0;
     html += `<div class="vote-progress">
       <span class="vp-text">${n}/${voters} szavazott</span>
       <div class="vp-track"><div class="vp-fill" style="width:${pct}%"></div></div>
     </div>`;
-    html += `<button class="btn btn-primary btn-block" data-host="${gs === "guess_author" ? "closeAuthor" : "closeLie"}">
-      Szavazás eredménye</button>`;
-  }
-
-  if (gs === "reveal_author") {
-    if (!room.authorRevealed) {
-      html += `<button class="btn btn-primary btn-block" data-host="revealAuthor">Szerző felfedése</button>`;
-    } else {
-      html += `<p class="host-note">A szerző: <b>${esc((players[room.activePlayerId] || {}).name || "?")}</b></p>`;
-      html += `<button class="btn btn-primary btn-block" data-host="toLie">Tovább: hazugság szavazás</button>`;
-    }
+    html += `<button class="btn btn-primary btn-block" data-host="closeLie">Szavazás eredménye</button>`;
   }
 
   if (gs === "reveal_lie") {
@@ -762,21 +670,15 @@ document.addEventListener("click", (e) => {
 
 // szavazás + hoszt gombok (eseménydelegálás, mert a HTML dinamikus)
 document.addEventListener("click", (e) => {
-  const a = e.target.closest("[data-vote-author]");
-  if (a) return voteAuthor(a.dataset.voteAuthor);
-
   const l = e.target.closest("[data-vote-lie]");
   if (l) return voteLie(l.dataset.voteLie);
 
   const h = e.target.closest("[data-host]");
   if (h && isHost) {
     const fn = {
-      closeAuthor:  closeAuthorVoting,
-      revealAuthor: revealAuthor,
-      toLie:        goToLieVoting,
-      closeLie:     closeLieVoting,
-      revealLie:    revealLie,
-      next:         nextPlayer
+      closeLie:  closeLieVoting,
+      revealLie: revealLie,
+      next:      nextPlayer
     }[h.dataset.host];
     if (fn) { h.disabled = true; Promise.resolve(fn()).catch(err => toast(errText(err))); }
   }

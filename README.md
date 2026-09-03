@@ -19,11 +19,11 @@ hazugságot írnak magukról, a többiek pedig megpróbálják kitalálni, ki í
    Az állítások véletlenszerűen megkeveredve kerülnek az adatbázisba; a `lieIndex`
    mező jegyzi meg, melyik a hazugság.
 2. **Váróterem** – a hoszt látja, ki küldött be, és ő indítja a játékot.
-3. **Ki írta?** – szavazás a szerzőre, majd eredmény és felfedés.
-4. **Melyik a hazugság?** – szavazás az állításokra, majd eredmény és felfedés.
-5. A játék végén ranglista (minden jó tippért 1 pont).
-
-Aki egyszer már felfedődött szerzőként, később nem választható.
+3. **Melyik a hazugság?** – a játék sorra veszi a játékosokat. Elsőként mindig a
+   **hoszt** kerül sorra, utána a többiek véletlen sorrendben. A neve látszik, a
+   három állítására kell szavazni. A hoszt zárja le a szavazást, mutatja meg az
+   eredményt, majd fedi fel a hazugságot.
+4. A játék végén ranglista (minden jó tippért 1 pont, holtverseny kezelve).
 
 ## Beállítás
 
@@ -47,19 +47,17 @@ Aki egyszer már felfedődött szerzőként, később nem választható.
 ```
 rooms/
   SZOBAKOD/
-    gameState       submitting | guess_author | reveal_author | guess_lie | reveal_lie | end
+    gameState       submitting | guess_lie | reveal_lie | end
     hostId
     activePlayerId
-    order[]         a játékosok sorrendje
+    order[]         a sorrend: [hoszt, ...többiek megkeverve]
     orderIndex
-    authorRevealed  / lieRevealed
-    revealed/       akik már sorra kerültek
+    lieRevealed
     scores/         pontszámok
     players/
       UID/  name, statements[3] (megkeverve), lieIndex, submitted, joinedAt
     votes/
-      author/UID -> playerId
-      lie/UID    -> 0|1|2
+      lie/UID -> 0|1|2
 ```
 
 ## Admin
